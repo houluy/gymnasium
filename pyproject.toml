@@ -1,0 +1,19 @@
+
+[project]
+name = ""
+version = ""
+description = ""
+authors = [
+    {name = "houlu", email = "houlu8674@bupt.edu.cn"},
+]
+dependencies = [
+    "gymnasium[toy-text]>=0.28.1",
+    "matplotlib>=3.8.2",
+    "numpy>=1.26.3",
+    "tensorboard>=2.15.1",
+    "torch @ file://10.112.245.253/Root/Packages/Python_Packages/PyTorch/torch-2.2.1%2Bcu121-cp311-cp311-win_amd64.whl",
+    "torchvision @ file://10.112.245.253/Root/Packages/Python_Packages/PyTorch/torchvision-0.17.1%2Bcu121-cp311-cp311-win_amd64.whl",
+    "torchaudio @ file://10.112.245.253/Root/Packages/Python_Packages/PyTorch/torchaudio-2.2.1%2Bcu121-cp311-cp311-win_amd64.whl",
+]
+requires-python = ">=3.9"
+license = {text = "MIT"}
