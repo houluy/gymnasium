@@ -17,7 +17,7 @@ device = (
 )
 
 
-class SQL(nn.Module):
+class QValue(nn.Module):
     input_size: int
     hidden_size: int
     output_size: int
