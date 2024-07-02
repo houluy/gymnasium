@@ -62,6 +62,8 @@ class DQN:
         self.target_q_network = QValue(state_dim, action_num, hidden_dim)
         # Optimizer
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
+        # TensorBoard Writer
+        
 
     def select_action(self, state):
         # Epsilon-Greedy
