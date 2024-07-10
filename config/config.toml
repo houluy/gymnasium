@@ -1,0 +1,11 @@
+[cartpole]
+
+[cartpole.vanilla_actor_critic]
+
+
+[cartpole.actor_critic]
+gamma = 0.7
+actor_lr = 0.0001
+critic_lr = 0.0001
+batch_size = 64
+info_step = 1000
