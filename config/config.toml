@@ -1,11 +1,31 @@
-[cartpole]
+[CartPoleV1]
 
 [cartpole.vanilla_actor_critic]
 
 
-[cartpole.actor_critic]
+[cartpole.ActorCritic]
 gamma = 0.7
 actor_lr = 0.0001
 critic_lr = 0.0001
-batch_size = 64
+batch_size = 32
+info_step = 1000
+
+[CartPole-V1.DQN]
+gamma = 0.7
+lr = 0.0001
+batch_size = 32
+info_step = 1000
+buffer_size = 10000
+epsilon_decay_step = 1000
+epsilon_decay_factor = 0.99
+training_start = 10000
+target_update_step = 100
+
+[cartpole.vac]
+gamma = 0.7
+value_lr = 0.001
+policy_lr = 0.001
+buffer_size = 10000
+batch_size = 32
+training_start = 10000
 info_step = 1000

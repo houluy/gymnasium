@@ -1,3 +1,3 @@
-from src.ac import main
+from algos.ac import main
 
 main()
