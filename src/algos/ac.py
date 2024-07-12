@@ -1,12 +1,11 @@
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Categorical
 from tqdm import tqdm
 import gymnasium as gym
 from src.algos.algo import Algo
-from src.networks import Policy, Value
+from src.networks import DiscretePolicy as Policy, Value
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")) 
 
@@ -20,8 +19,6 @@ class ActorCritic(Algo):
 
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
-
-        self.writer = SummaryWriter()
 
     def select_action(self, state):
         with torch.no_grad():

@@ -1,21 +1,20 @@
 from tqdm import tqdm
 
-from src.networks import Value, Policy
+from src.networks import Value, DiscretePolicy as Policy
 from src.utils import EpisodeBuffer
 
 import torch
 import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
 from torch.distributions import Categorical
 from torch.functional import F
 from src.algos.algo import Algo
 
 
 class VanillaActorCritic(Algo):
-    def __init__(self, env, device="cpu"):
-        super().__init__(env, device)
+    def __init__(self, env_name, device="cpu"):
+        super().__init__(env_name, device)
         
-        self.buffer = EpisodeBuffer(self.gamma)
+        self.buffer = EpisodeBuffer(self.gamma, device=self.device)
 
         # Value network
         self.value = Value(self.env.observation_space.shape[0]).to(self.device)
@@ -25,12 +24,10 @@ class VanillaActorCritic(Algo):
         self.policy = Policy(self.env.observation_space.shape[0], self.env.action_space.n).to(self.device)
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=self.policy_lr)
 
-        # Tensorboard Writer
-        self.writer = SummaryWriter()
-
     def select_action(self, state):
-        action_probs = self.policy(state)
-        sample = torch.multinomial(action_probs, 1)
+        with torch.no_grad():
+            action_probs = self.policy(state)
+            sample = torch.multinomial(action_probs, 1)
         return sample[0].item()
 
     def update_value(self, batch):
