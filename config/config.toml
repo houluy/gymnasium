@@ -8,13 +8,24 @@ info_step = 1000
 
 
 [CartPole-v1.ActorCritic]
-gamma = 0.7
+gamma = 0.99
 actor_lr = 0.0001
 critic_lr = 0.0001
 batch_size = 32
 info_step = 1000
 
 [CartPole-v1.DQN]
+gamma = 0.99
+lr = 0.0001
+batch_size = 32
+info_step = 10000
+buffer_size = 100000
+epsilon_decay_step = 2000
+epsilon_decay_factor = 0.99
+training_start = 3000
+target_update_step = 10
+
+[CartPole-v1.DuelingDQN]
 gamma = 0.99
 lr = 0.0001
 batch_size = 32
@@ -33,6 +44,17 @@ buffer_size = 10000
 batch_size = 32
 info_step = 1000
 
+[CartPole-v1.DoubleDQN]
+gamma = 0.99
+lr = 0.0001
+batch_size = 32
+info_step = 1000
+buffer_size = 100000
+epsilon_decay_step = 5000
+epsilon_decay_factor = 0.99
+training_start = 3000
+target_update_step = 10
+
 [Pendulum-v1]
 
 [Pendulum-v1.DeepDeterministicPolicyGradient]
@@ -43,8 +65,18 @@ batch_size = 32
 buffer_size = 100000
 info_step = 1000
 polyak = 0.8
-start_noise_std = 1
+start_noise_std = 0.5
 noise_std_decay_factor = 0.99
-noise_std_decay_freq = 1000
+noise_std_decay_freq = 8000
 training_start = 2000
 
+[Acrobot-v1.DQN]
+gamma = 0.99
+lr = 0.0001
+batch_size = 32
+info_step = 10000
+buffer_size = 100000
+epsilon_decay_step = 5000
+epsilon_decay_factor = 0.99
+training_start = 3000
+target_update_step = 10

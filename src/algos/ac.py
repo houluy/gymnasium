@@ -20,21 +20,32 @@ class ActorCritic(Algo):
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=self.actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr)
 
-    def select_action(self, state):
+    def select_action(self, state, train=True):
         with torch.no_grad():
             action_probs = self.policy(state)
             sample = torch.multinomial(action_probs, 1)
         return sample[0].item()
 
-    def update_policy(self, exp, delta):
+    def evaluate(self, episodes=100):
+        rewards = super().evaluate(episodes)
+        return rewards
+
+    def update_policy(self, exp):
         state, action, reward, done, next_state = exp
+        for p in self.critic.parameters():
+            p.requires_grad = False
         self.policy_optimizer.zero_grad()
+        value = self.critic(state)
+        next_value = self.critic(next_state)
+        delta = reward + self.gamma * next_value * (1 - done) - value
         probs = self.policy(state)
         m = Categorical(probs)
         performance = -m.log_prob(action) * delta
         performance.backward()
         self.policy_optimizer.step() 
-        return performance
+        for p in self.critic.parameters():
+            p.requires_grad = True
+        return performance, delta
 
     def update_value(self, exp):
         state, action, reward, done, next_state = exp
@@ -42,11 +53,10 @@ class ActorCritic(Algo):
         value = self.critic(state)
         next_value = self.critic(next_state)
         target = reward + self.gamma * next_value * (1 - done)
-        delta = target - value
         loss = F.smooth_l1_loss(value, target)
         loss.backward()
         self.critic_optimizer.step()
-        return loss, delta.item()
+        return loss
 
     def train(self, episodes=50000):
         training_step = 0
@@ -64,8 +74,8 @@ class ActorCritic(Algo):
                         torch.tensor(reward).to(self.device),
                         torch.tensor(1 if done else 0).to(self.device),
                         torch.from_numpy(next_state).to(self.device))
-                loss, delta = self.update_value(exp)
-                performance = self.update_policy(exp, delta)
+                loss = self.update_value(exp)
+                performance, delta = self.update_policy(exp)
                 training_step += 1
                 step += 1
                 done = done or truncation

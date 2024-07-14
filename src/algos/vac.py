@@ -24,11 +24,15 @@ class VanillaActorCritic(Algo):
         self.policy = Policy(self.env.observation_space.shape[0], self.env.action_space.n).to(self.device)
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=self.policy_lr)
 
-    def select_action(self, state):
+    def select_action(self, state, train=True):
         with torch.no_grad():
             action_probs = self.policy(state)
             sample = torch.multinomial(action_probs, 1)
         return sample[0].item()
+
+    def evaluate(self, episodes=100):
+        rewards = super().evaluate(episodes)
+        return rewards
 
     def update_value(self, batch):
         states, actions, rewards, next_states, dones, rewards_to_go = batch

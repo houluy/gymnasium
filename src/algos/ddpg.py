@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from src.networks import ContinuousPolicy as Policy, ContinuousQ as Q
 from src.utils import ReplayBuffer
 from tqdm import tqdm
+import numpy as np
 
 
 class DeepDeterministicPolicyGradient(Algo):
@@ -12,7 +13,7 @@ class DeepDeterministicPolicyGradient(Algo):
     def __init__(self, env_name, device=torch.device("cpu")):
         super().__init__(env_name, device)
 
-        self.buffer = ReplayBuffer(self.buffer_size, self.device)
+        self.buffer = ReplayBuffer(self.buffer_size, self.device, action_dtype="continuous")
 
         self.policy = Policy(self.env.observation_space.shape[0], self.env.action_space.shape[0]).to(device)
         self.target_policy = Policy(self.env.observation_space.shape[0], self.env.action_space.shape[0]).to(device)
@@ -68,6 +69,10 @@ class DeepDeterministicPolicyGradient(Algo):
             p.requires_grad = True
         return performance
 
+    def evaluate(self, episodes=100):
+        rewards = super().evaluate(episodes)
+        return rewards
+
     def train(self, episodes=10000):
         training_step = -self.training_start
         for episode in tqdm(range(episodes), desc="Training"):
@@ -89,6 +94,7 @@ class DeepDeterministicPolicyGradient(Algo):
                     performance = self.update_policy(batch)
                     self.writer.add_scalar("training/loss_value", loss, training_step)
                     self.writer.add_scalar("training/q_value", -performance, training_step)
+                    self.writer.add_scalar("training/Gaussian_noise_std", self.noise_std, training_step)
                     if training_step % self.noise_std_decay_freq == 0:
                         self.decay_noise()
                     if training_step % self.info_step == 0:

@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class DiscretePolicy(nn.Module):
@@ -90,5 +91,26 @@ class ContinuousQ(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
+
+class DuelingDiscreteQ(nn.Module):
+    def __init__(self, state_dim, action_num, hidden_size=64):
+        super().__init__()
+        self.fc1 = nn.Linear(state_dim, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        # Advantage output
+        self.fc3 = nn.Linear(hidden_size, action_num)
+        # Value output
+        self.fc4 = nn.Linear(hidden_size, 1)
+
+        # Q = V + A(averaged)
+
+    def forward(self, x):
+        hidden1 = F.relu(self.fc1(x))
+        hidden2 = F.relu(self.fc2(hidden1))
+        value_output = self.fc4(hidden2)
+        advantage_output = self.fc3(hidden2)
+        q = value_output + advantage_output - advantage_output.mean()
+        return q
 
 

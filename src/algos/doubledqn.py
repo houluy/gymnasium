@@ -1,28 +1,33 @@
+import torch
+import torch.optim as optim
+import torch.nn.functional as F
 from src.algos.algo import Algo
 from src.utils import ReplayBuffer
 from src.networks import DiscreteQ as Q
-import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
-import torch
+import numpy as np
 import random
 from tqdm import tqdm
-from torch.functional import F
 
 
-class DQN(Algo):
-    def __init__(self, env_name, device="cpu"):
+class DoubleDQN(Algo):
+    "Double Deep Q Networks"
+    def __init__(self, env_name, device):
         super().__init__(env_name, device)
-        self.epsilon = self.start_epsilon = 1
-        self.end_epsilon = 0.1
-        self.replay_buffer = ReplayBuffer(self.buffer_size, device=device)
-        self.q = Q(self.env.observation_space.shape[0], self.env.action_space.n, hidden_size=256).to(device)
-        self.target_network = Q(self.env.observation_space.shape[0], self.env.action_space.n, hidden_size=256).to(device)
-        self.optimizer = optim.Adam(self.q.parameters(), lr=self.lr)
+        self.q = Q(self.env.observation_space.shape[0], self.env.action_space.n).to(device)
+        self.target_q = Q(self.env.observation_space.shape[0], self.env.action_space.n).to(device)
         self.update_target_network()
+        self.epsilon = self.start_epsilon = 1.0
+        self.replay_buffer = ReplayBuffer(self.buffer_size, self.device)
+        self.end_epsilon = 0.1
+
+        self.optimizer = optim.Adam(self.q.parameters(), lr=self.lr)
+
+    def update_target_network(self):
+        self.target_q.load_state_dict(self.q.state_dict())
 
     def epsilon_decay(self):
         self.epsilon *= self.epsilon_decay_factor
-        return self.epsilon
+        return max(self.epsilon, self.end_epsilon)
 
     def save(self):
         torch.save(self.q.state_dict(), self.model_path)
@@ -34,24 +39,23 @@ class DQN(Algo):
         if train and (random.random() < self.epsilon):
             return self.env.action_space.sample()
         else:
-            return self.q(state).argmax().item()
-
-    def update_target_network(self):
-        self.target_network.load_state_dict(self.q.state_dict())
-
-    def update_value(self, batch):
-        states, actions, rewards, next_states, dones = batch
-        y = rewards + self.gamma * self.target_network(next_states).max(1)[0] * (1 - dones)
-        q = self.q(states).gather(1, actions.unsqueeze(1))
-        loss = F.mse_loss(q, y.unsqueeze(1).float())
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-        return loss
+            with torch.no_grad():
+                return self.q(state).argmax().item()
 
     def evaluate(self, episodes=100):
         rewards = super().evaluate(episodes)
         return rewards
+
+    def update_value(self, batch):
+        states, actions, rewards, next_states, dones = batch
+        next_actions = self.q(next_states).argmax(1)
+        y = rewards.unsqueeze(1) + self.gamma * self.target_q(next_states).gather(1, next_actions.unsqueeze(1)) * (1 - dones).unsqueeze(1)
+        q = self.q(states).gather(1, actions.unsqueeze(1))
+        loss = F.mse_loss(q, y.float())
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        return loss
 
     def train(self, episodes=10000):
         training_step = -self.training_start
@@ -80,3 +84,6 @@ class DQN(Algo):
                     if training_step % self.target_update_step == 0:
                         self.update_target_network()
             self.writer.add_scalar("training/episodic_reward", episodic_reward, episode)
+
+
+
