@@ -15,8 +15,8 @@ class DQN(Algo):
         self.epsilon = self.start_epsilon = 1
         self.end_epsilon = 0.1
         self.replay_buffer = ReplayBuffer(self.buffer_size, device=device)
-        self.q = Q(self.env.observation_space.shape[0], self.env.action_space.n, hidden_size=256).to(device)
-        self.target_network = Q(self.env.observation_space.shape[0], self.env.action_space.n, hidden_size=256).to(device)
+        self.q = Q(self.env.observation_space.shape[0], self.env.action_space.n, hidden_size=32).to(device)
+        self.target_network = Q(self.env.observation_space.shape[0], self.env.action_space.n, hidden_size=32).to(device)
         self.optimizer = optim.Adam(self.q.parameters(), lr=self.lr)
         self.update_target_network()
 

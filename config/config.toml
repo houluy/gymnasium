@@ -30,7 +30,7 @@ gamma = 0.99
 lr = 0.0001
 batch_size = 32
 info_step = 1000
-buffer_size = 1000000
+buffer_size = 100000
 epsilon_decay_step = 2000
 epsilon_decay_factor = 0.99
 training_start = 3000
@@ -71,6 +71,38 @@ noise_std_decay_freq = 8000
 training_start = 2000
 
 [Acrobot-v1.DQN]
+gamma = 0.99
+lr = 0.0001
+batch_size = 32
+info_step = 10000
+buffer_size = 100000
+epsilon_decay_step = 5000
+epsilon_decay_factor = 0.99
+training_start = 3000
+target_update_step = 10
+
+[Acrobot-v1.DuelingDQN]
+gamma = 0.99
+lr = 0.0001
+batch_size = 32
+info_step = 10000
+buffer_size = 100000
+epsilon_decay_step = 5000
+epsilon_decay_factor = 0.99
+training_start = 3000
+target_update_step = 10
+
+[Acrobot-v1.VanillaActorCritic]
+gamma = 0.99
+value_lr = 0.0001
+policy_lr = 0.0001
+buffer_size = 100000
+batch_size = 32
+info_step = 1000
+
+[MountainCar-v0]
+
+[MountainCar-v0.DQN]
 gamma = 0.99
 lr = 0.0001
 batch_size = 32

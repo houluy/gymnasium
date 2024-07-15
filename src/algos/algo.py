@@ -1,13 +1,33 @@
 import tomllib as toml
 from abc import ABCMeta, abstractmethod
-from typing import List
+from collections.abc import Callable
+from typing import List, TypeVar
 import gymnasium as gym
+from gymnasium.spaces import Space
+import numpy as np
+from numpy.typing import ArrayLike
 import torch
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 
+ObsType = TypeVar("ObsType")
+
+
+def sigmoid(x: ArrayLike) -> ArrayLike:
+    return 1 / (1 + np.exp(-x))
+
+
+def make_state_normalize(observation_space: Space[ObsType]):
+    def normalizer(state: ArrayLike) -> ArrayLike:
+        if observation_space.is_bounded:
+            return (state - observation_space.low) / (observation_space.high - observation_space.low)
+        else:
+            return sigmoid(state)
+    return normalizer
+
+
 class Algo(metaclass=ABCMeta):
-    def __init__(self, env_name, device="cpu"):
+    def __init__(self, env_name, device=torch.device("cpu")):#, state_normalize: Callable[[ArrayLike], ArrayLike] = lambda x: x):
         self.env = gym.make(env_name)
         self.device = device
         with open("config/config.toml", "rb") as f:
@@ -16,6 +36,7 @@ class Algo(metaclass=ABCMeta):
         for key, value in config.items():
             setattr(self, key, value)
         self.model_path = f"models/{env_name}/{self.__class__.__name__}.pt"
+        self.state_normalize = make_state_normalize(self.env.observation_space)
         self.writer = SummaryWriter()
 
     @abstractmethod
@@ -42,4 +63,3 @@ class Algo(metaclass=ABCMeta):
     @abstractmethod
     def train(self, episodes=10000):
         pass
-        
