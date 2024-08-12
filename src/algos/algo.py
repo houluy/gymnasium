@@ -27,9 +27,17 @@ def make_state_normalize(observation_space: Space[ObsType]):
 
 
 class Algo(metaclass=ABCMeta):
-    def __init__(self, env_name, device=torch.device("cpu")):#, state_normalize: Callable[[ArrayLike], ArrayLike] = lambda x: x):
+    def __init__(self, env_name=None, continuous=False, device=torch.device("cpu")):#, state_normalize: Callable[[ArrayLike], ArrayLike] = lambda x: x):
         self.env = gym.make(env_name)
+        
         self.device = device
+        self.continuous = continuous
+        self.state_dim = self.env.observation_space.shape[0]
+        if self.continuous:
+            self.action_dim = self.env.action_space.shape[0]
+        else:
+            self.action_dim = self.env.action_space.n
+        self.select_action = self.select_action_continuous if self.continuous else self.select_action_discrete
         with open("config/config.toml", "rb") as f:
             config = toml.load(f)
         config = config[env_name][self.__class__.__name__]
@@ -40,7 +48,11 @@ class Algo(metaclass=ABCMeta):
         self.writer = SummaryWriter()
 
     @abstractmethod
-    def select_action(self, state, train=True):
+    def select_action_continuous(self, state, train=True):
+        pass
+
+    @abstractmethod
+    def select_action_discrete(self, state, train=True):
         pass
 
     @abstractmethod
@@ -61,5 +73,5 @@ class Algo(metaclass=ABCMeta):
         return rewards
 
     @abstractmethod
-    def train(self, episodes=10000):
+    def train(self, episodes=10000) -> None:
         pass

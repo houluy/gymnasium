@@ -10,17 +10,17 @@ import numpy as np
 
 class DeepDeterministicPolicyGradient(Algo):
     """Deep Deterministic Policy Gradient (DDPG) algorithm."""
-    def __init__(self, env_name, device=torch.device("cpu")):
-        super().__init__(env_name, device)
+    def __init__(self, env_name, continuous=True, device=torch.device("cpu")):
+        super().__init__(env_name, continuous, device)
 
-        self.buffer = ReplayBuffer(self.buffer_size, self.device, action_dtype="continuous")
+        self.buffer = ReplayBuffer(self.buffer_size, self.device, action_type="continuous")
 
-        self.policy = Policy(self.env.observation_space.shape[0], self.env.action_space.shape[0]).to(device)
-        self.target_policy = Policy(self.env.observation_space.shape[0], self.env.action_space.shape[0]).to(device)
-        self.q = Q(self.env.observation_space.shape[0] + self.env.action_space.shape[0]).to(device)
-        self.target_q = Q(self.env.observation_space.shape[0] + self.env.action_space.shape[0]).to(device)
+        self.policy = Policy(self.state_dim, self.action_dim).to(device)
+        self.target_policy = Policy(self.state_dim, self.action_dim).to(device)
+        self.q = Q(self.state_dim + self.action_dim).to(device)
+        self.target_q = Q(self.state_dim + self.action_dim).to(device)
         self.target_network_soft_update()
-        
+ 
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=self.policy_lr)
         self.q_optimizer = optim.Adam(self.q.parameters(), lr=self.critic_lr)
 
@@ -30,12 +30,15 @@ class DeepDeterministicPolicyGradient(Algo):
         self.noise_std *= self.noise_std_decay_factor
         return self.noise_std
 
-    def select_action(self, state):
+    def select_action_continuous(self, state, train=True):
         with torch.no_grad():
             action = self.policy(state)
-            action += torch.randn_like(action) * self.noise_std
-
+            if train:
+                action += torch.randn_like(action) * self.noise_std
         return action.cpu()
+
+    def select_action_discrete(self, state, train=True):
+        pass
 
     def target_network_soft_update(self):
         with torch.no_grad():
@@ -49,7 +52,7 @@ class DeepDeterministicPolicyGradient(Algo):
         next_actions = self.target_policy(next_states)
         y = rewards.unsqueeze(1) + self.gamma * (1 - dones).unsqueeze(1) * self.target_q(torch.concat([next_states, next_actions], dim=1))
         q = self.q(torch.concat([states, actions], dim=1))
-        loss = F.mse_loss(q, y)
+        loss = F.mse_loss(q, y.float())
 
         self.q_optimizer.zero_grad()
         loss.backward()
@@ -74,6 +77,8 @@ class DeepDeterministicPolicyGradient(Algo):
         return rewards
 
     def train(self, episodes=10000):
+        if self.continuous:
+            action_dist = []
         training_step = -self.training_start
         for episode in tqdm(range(episodes), desc="Training"):
             state, _ = self.env.reset()
@@ -82,6 +87,8 @@ class DeepDeterministicPolicyGradient(Algo):
             step = 0
             while not done:
                 action = self.select_action(torch.from_numpy(state).to(self.device))
+                if self.continuous:
+                    action_dist.append(action)
                 next_state, reward, done, truncation, _ = self.env.step(action)
                 episodic_reward += reward
                 self.buffer.add(state, action, reward, next_state, 1 if done else 0)
@@ -100,5 +107,8 @@ class DeepDeterministicPolicyGradient(Algo):
                     if training_step % self.info_step == 0:
                         tqdm.write(f"Episode: {episode}, Training step: {training_step}, Episodic Reward: {episodic_reward}")
                     self.target_network_soft_update()
+            self.writer.add_scalar("training/episode_length", step, episode)
             self.writer.add_scalar("training/episodic_reward", episodic_reward, episode)
+        if self.continuous:
+            self.writer.add_histogram("training/action_dist", np.array(action_dist), 1, bins="auto")
 

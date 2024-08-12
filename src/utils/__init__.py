@@ -5,7 +5,7 @@ import numpy as np
 
 
 class ReplayBuffer:
-    def __init__(self, buffer_size, device="cpu", action_type="discrete"):
+    def __init__(self, buffer_size, device=torch.device("cpu"), action_type="discrete"):
         self.buffer_size = buffer_size
         self.device = device
         self.action_dtype = np.int64 if action_type == "discrete" else np.float32
@@ -16,6 +16,14 @@ class ReplayBuffer:
 
     def sample(self, batch_size):
         batch = random.sample(self.buffer, batch_size)
+        #for i in range(len(batch)):
+        #    print(i, len(batch[i]), end=" ")
+        #    for item in batch[i]:
+        #        try:
+        #            print(item.shape, end=" ")
+        #        except:
+        #            print(item, end=" ")
+        #    print()
         states, actions, rewards, next_states, dones = map(np.stack, zip(*batch))
         return torch.from_numpy(states).to(self.device),\
             torch.from_numpy(np.array(actions, dtype=self.action_dtype)).to(self.device),\

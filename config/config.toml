@@ -13,6 +13,7 @@ actor_lr = 0.0001
 critic_lr = 0.0001
 batch_size = 32
 info_step = 1000
+continuous_policy_std = 1.0  # Standard deviation of the policy distribution for continuous action space
 
 [CartPole-v1.DQN]
 gamma = 0.99
@@ -70,6 +71,30 @@ noise_std_decay_factor = 0.99
 noise_std_decay_freq = 8000
 training_start = 2000
 
+[Pendulum-v1.VanillaActorCritic]
+gamma = 0.99
+value_lr = 0.0001
+policy_lr = 0.0001
+buffer_size = 100000
+batch_size = 32
+info_step = 1000
+start_noise_std = 1.0
+noise_std_decay_factor = 0.99  # Standard deviation of the policy distribution for continuous action space
+noise_std_decay_freq_episode = 100
+policy_with_std = true
+
+[Pendulum-v1.ActorCritic]
+gamma = 0.99
+actor_lr = 0.0001
+critic_lr = 0.0001
+batch_size = 32
+info_episode = 1000
+start_noise_std = 1.0
+noise_std_decay_factor = 0.99  # Standard deviation of the policy distribution for continuous action space
+noise_std_decay_freq_episode = 100
+
+[Acrobot-v1]
+
 [Acrobot-v1.DQN]
 gamma = 0.99
 lr = 0.0001
@@ -107,8 +132,52 @@ gamma = 0.99
 lr = 0.0001
 batch_size = 32
 info_step = 10000
-buffer_size = 100000
-epsilon_decay_step = 5000
+buffer_size = 10000
+epsilon_decay_step = 10000
 epsilon_decay_factor = 0.99
-training_start = 3000
+training_start = 10000
 target_update_step = 10
+
+[MountainCar-v0.VanillaActorCritic]
+gamma = 0.99
+value_lr = 0.0001
+policy_lr = 0.0001
+buffer_size = 100000
+batch_size = 32
+info_step = 1000
+
+[MountainCarContinuous-v0]
+
+[MountainCarContinuous-v0.VanillaActorCritic]
+gamma = 0.99
+value_lr = 0.0001
+policy_lr = 0.0001
+buffer_size = 100000
+batch_size = 32
+info_step = 1000
+start_noise_std = 1.0
+noise_std_decay_factor = 0.99  # Standard deviation of the policy distribution for continuous action space
+noise_std_decay_freq_episode = 100
+
+[MountainCarContinuous-v0.ActorCritic]  # 
+gamma = 0.99
+actor_lr = 0.0001
+critic_lr = 0.0001
+batch_size = 32
+info_episode = 1000
+start_noise_std = 1.0
+noise_std_decay_factor = 0.99  # Standard deviation of the policy distribution for continuous action space
+noise_std_decay_freq_episode = 100
+
+[MountainCarContinuous-v0.DeepDeterministicPolicyGradient]
+gamma = 0.99
+policy_lr = 0.0001
+critic_lr = 0.0001
+batch_size = 32
+buffer_size = 100000
+info_step = 1000
+polyak = 0.8
+start_noise_std = 0.5
+noise_std_decay_factor = 0.99
+noise_std_decay_freq = 8000
+training_start = 2000

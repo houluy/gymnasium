@@ -39,8 +39,7 @@ class DoubleDQN(Algo):
         if train and (random.random() < self.epsilon):
             return self.env.action_space.sample()
         else:
-            with torch.no_grad():
-                return self.q(state).argmax().item()
+            return self.q(state).argmax().item()
 
     def evaluate(self, episodes=100):
         rewards = super().evaluate(episodes)
