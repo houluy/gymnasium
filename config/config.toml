@@ -181,3 +181,34 @@ start_noise_std = 0.5
 noise_std_decay_factor = 0.99
 noise_std_decay_freq = 8000
 training_start = 2000
+
+[MountainCarContinuous-v0.TwinDelayedDDPG]
+gamma = 0.99
+policy_lr = 0.0001
+critic_lr = 0.0001
+batch_size = 32
+buffer_size = 100000
+info_step = 1000
+polyak = 0.8
+action_max = 1
+action_min = -1
+target_policy_threshold_max = 0.5
+target_policy_threshold_min = -0.5
+start_noise_std = 0.5
+noise_std_decay_factor = 0.99
+noise_std_decay_freq = 8000
+training_start = 2000
+policy_update_freq = 2
+
+[MountainCarContinuous-v0.SoftActorCritic]
+gamma = 0.99
+policy_lr = 0.0001
+critic_lr = 0.0001
+batch_size = 32
+buffer_size = 100000
+info_step = 1000
+polyak = 0.9
+action_max = 1
+action_min = -1
+training_start = 10000
+update_num_per_step = 10

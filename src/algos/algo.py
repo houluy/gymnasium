@@ -64,11 +64,12 @@ class Algo(metaclass=ABCMeta):
             episodic_reward = 0
             while not done:
                 action = self.select_action(torch.from_numpy(state).to(self.device), train=False)
-                next_state, reward, done, truncated, info = self.env.step(action)
+                action = action.cpu()
+                next_state, reward, done, truncation, info = self.env.step(action)
                 episodic_reward += reward
                 state = next_state
-                done = done or truncated
-            self.writer.add_scalar("Evaluation Reward", episodic_reward, episode)
+                done = done or truncation
+            self.writer.add_scalar("evaluation/episodic_reward", episodic_reward, episode)
             rewards.append(episodic_reward)
         return rewards
 
