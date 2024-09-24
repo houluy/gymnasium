@@ -15,13 +15,13 @@ class TwinDelayedDDPG(Algo):
         self.buffer = ReplayBuffer(self.buffer_size, self.device, action_type="continuous")
         self.policy = Policy(self.state_dim, self.action_dim).to(device)
         self.target_policy = Policy(self.state_dim, self.action_dim).to(device)
-        self.q1 = Q(self.state_dim + self.action_dim).to(device)
-        self.q2 = Q(self.state_dim + self.action_dim).to(device)
+        self.q1 = Q(self.state_dim + self.action_dim, hidden_size=32).to(device)
+        self.q2 = Q(self.state_dim + self.action_dim, hidden_size=32).to(device)
 
         self.qs = (self.q1, self.q2)
 
-        self.target_q1 = Q(self.state_dim + self.action_dim).to(device)
-        self.target_q2 = Q(self.state_dim + self.action_dim).to(device)
+        self.target_q1 = Q(self.state_dim + self.action_dim, hidden_size=32).to(device)
+        self.target_q2 = Q(self.state_dim + self.action_dim, hidden_size=32).to(device)
 
         self.target_qs = (self.target_q1, self.target_q2)
 
@@ -40,15 +40,19 @@ class TwinDelayedDDPG(Algo):
             for target_param, param in zip(self.target_policy.parameters(), self.policy.parameters()):
                 target_param.data.copy_(param.data * self.polyak + target_param.data * (1.0 - self.polyak))
 
-    def select_action_continuous(self, state, policy, target=False, train=True):
+    def select_action_continuous(self, state, target=False, train=True):
         with torch.no_grad():
+            if target and train:
+                policy = self.target_policy
+            else:
+                policy = self.policy
             action = policy(state)
             if train:
                 random_v = torch.randn_like(action) * self.noise_std
                 if target:
                     random_v = torch.clamp(random_v, min=self.target_policy_threshold_min, max=self.target_policy_threshold_max)
                 action += random_v
-                action = torch.clamp(action, min=self.action_min, max=self.action_max)
+            action = torch.clamp(action, min=self.action_min, max=self.action_max)
         return action
 
     def select_action_discrete(self, state, train=True):
@@ -71,7 +75,7 @@ class TwinDelayedDDPG(Algo):
 
     def update_qs(self, batch):
         states, actions, rewards, next_states, dones = batch
-        next_actions = self.select_action_continuous(next_states, self.target_policy, target=True)
+        next_actions = self.select_action_continuous(next_states, target=True)
         state_actions = torch.concat([states, actions], dim=1)
         next_state_actions = torch.concat([next_states, next_actions], dim=1)
         target_q_1 = self.target_q1(next_state_actions)
@@ -116,7 +120,7 @@ class TwinDelayedDDPG(Algo):
             episodic_reward = 0
             step = 0
             while not done:
-                action = self.select_action_continuous(torch.from_numpy(state).to(self.device), self.policy, target=False)
+                action = self.select_action_continuous(torch.from_numpy(state).to(self.device), target=False)
                 action = action.cpu()
                 if self.continuous:
                     action_dist.append(action)

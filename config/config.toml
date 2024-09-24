@@ -60,16 +60,16 @@ target_update_step = 10
 
 [Pendulum-v1.DeepDeterministicPolicyGradient]
 gamma = 0.99
-policy_lr = 0.0001
-critic_lr = 0.0001
+policy_lr = 0.00001
+critic_lr = 0.00001
 batch_size = 32
-buffer_size = 100000
+buffer_size = 10000
 info_step = 1000
-polyak = 0.8
+polyak = 0.9
 start_noise_std = 0.5
 noise_std_decay_factor = 0.99
 noise_std_decay_freq = 8000
-training_start = 2000
+training_start = 10000
 
 [Pendulum-v1.VanillaActorCritic]
 gamma = 0.99
@@ -92,6 +92,37 @@ info_episode = 1000
 start_noise_std = 1.0
 noise_std_decay_factor = 0.99  # Standard deviation of the policy distribution for continuous action space
 noise_std_decay_freq_episode = 100
+
+[Pendulum-v1.TwinDelayedDDPG]
+gamma = 0.99
+policy_lr = 0.0000001
+critic_lr = 0.0000001
+batch_size = 32
+buffer_size = 1000000
+info_step = 1000
+polyak = 0.9
+action_max = 2
+action_min = -2
+target_policy_threshold_max = 0.5
+target_policy_threshold_min = -0.5
+start_noise_std = 1
+noise_std_decay_factor = 0.9
+noise_std_decay_freq = 1000
+training_start = 10000
+policy_update_freq = 2
+
+[Pendulum-v1.SoftActorCritic]
+gamma = 0.99
+policy_lr = 0.00001
+critic_lr = 0.00001
+batch_size = 32
+buffer_size = 10000
+info_step = 1000
+polyak = 0.9
+action_max = 2
+action_min = -2
+training_start = 10000
+update_num_per_step = 10
 
 [Acrobot-v1]
 
@@ -202,10 +233,10 @@ policy_update_freq = 2
 
 [MountainCarContinuous-v0.SoftActorCritic]
 gamma = 0.99
-policy_lr = 0.0001
-critic_lr = 0.0001
+policy_lr = 0.00001
+critic_lr = 0.00001
 batch_size = 32
-buffer_size = 100000
+buffer_size = 10000
 info_step = 1000
 polyak = 0.9
 action_max = 1
