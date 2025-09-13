@@ -5,6 +5,7 @@ from src.environments.simple_spread import SimpleSpread
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 import torch
+import numpy as np
 import random
 from tqdm import tqdm
 from torch.functional import F
@@ -14,13 +15,29 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 
 class DQN(Algo):
-    def __init__(self, env_name=None, device="cpu", continuous=False):
+    def __init__(self, env_name=None, device="cpu", continuous=False, action_dim=None):
         super().__init__(env_name, device=device, continuous=continuous)
+        if action_dim is not None:
+            assert continuous  # action_dim is only used for continuous action space
+            self.action_dim = action_dim
+        if continuous:
+            # To use DQN in continuous environment, the action needs to be discretized into a finite number of choices
+            if getattr(self, 'action_space', None):
+                # Action space is provided in kwargs
+                pass
+            else:
+                assert getattr(self, 'action_min') and getattr(self, 'action_max')
+                self.action_space = np.zeros((self.action_dim,))
+                step = (self.action_max - self.action_min) / (self.action_dim - 1)
+                self.action_space[:-1] = np.arange(self.action_min, self.action_max, step)
+                self.action_space[-1] = self.action_max
+                assert len(self.action_space) == self.action_dim
         self.epsilon = self.start_epsilon = 1
         self.end_epsilon = 0.1
-        self.replay_buffer = ReplayBuffer(self.buffer_size, device=device)
+        self.replay_buffer = ReplayBuffer(self.buffer_size, device=device, action_type="discrete")
         self.q = Q(self.state_dim, self.action_dim, self.hidden_size).to(device)
         self.target_network = Q(self.state_dim, self.action_dim, self.hidden_size).to(device)
+        self.model_path = self.model_path / "q.pth"
         self.optimizer = optim.Adam(self.q.parameters(), lr=self.lr, weight_decay=0.01)
         self.update_target_network()
 
@@ -44,7 +61,11 @@ class DQN(Algo):
         else:
             return self.q(state).argmax().item()
 
-    select_action_continuous = select_action_discrete
+    def select_action_continuous(self, state, train=True):
+        if (train) and (random.random() < self.epsilon):
+            return np.random.choice(range(self.action_dim))
+        else:
+            return self.q(state).argmax().item()
 
     def update_target_network(self):
         self.target_network.load_state_dict(self.q.state_dict())
@@ -59,7 +80,14 @@ class DQN(Algo):
         self.optimizer.step()
         return loss
 
-    def evaluate(self, episodes=100):
+    def evaluate(self, episodes=100, load=False):
+        if load:
+            self.load()
+        if self.continuous:
+            # change select_action
+            def select_action_during_evaluation(self, state, train=False, agent=None):
+                return np.array([self.action_space[self.q(state).argmax().item()]])
+            self.select_action = select_action_during_evaluation.__get__(self)
         rewards = super().evaluate(episodes)
         return rewards
 
@@ -72,8 +100,15 @@ class DQN(Algo):
             episodic_reward = 0
             while not done:
                 action = self.select_action(torch.from_numpy(state).to(self.device))
+                # If continuous, here we must change the action index into a continuous action by fetching from action_space
+                # But only insert into env, not into replay buffer
+                if self.continuous:
+                    action_index = action
+                    action = np.array([self.action_space[action_index]])
                 next_state, reward, done, truncation, _ = self.env.step(action)
                 episodic_reward += reward
+                if self.continuous:
+                    action = action_index
                 self.replay_buffer.add(state, action, reward, next_state, 1 if done else 0)
                 state = next_state
                 done = done or truncation
@@ -83,6 +118,8 @@ class DQN(Algo):
                     loss = self.update_value(self.replay_buffer.sample(self.batch_size))
                     self.writer.add_scalar("training/loss_value", loss, training_step)
                     self.writer.add_scalar("training/epsilon", self.epsilon, training_step)
+                    if training_step % self.save_step == 0:
+                        self.save()
                     if training_step % self.epsilon_decay_step == 0:
                         self.epsilon_decay()
                     if training_step % self.info_step == 0:

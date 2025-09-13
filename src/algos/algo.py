@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 import torch
 from tqdm import tqdm
+import pathlib
 from torch.utils.tensorboard import SummaryWriter
 
 ObsType = TypeVar("ObsType")
@@ -29,7 +30,6 @@ def make_state_normalize(observation_space: Space[ObsType]):
 class Algo(metaclass=ABCMeta):
     def __init__(self, env_name=None, continuous=False, device=torch.device("cpu")):#, state_normalize: Callable[[ArrayLike], ArrayLike] = lambda x: x):
         self.env = gym.make(env_name)
-        
         self.device = device
         self.continuous = continuous
         self.state_dim = self.env.observation_space.shape[0]
@@ -43,9 +43,12 @@ class Algo(metaclass=ABCMeta):
         config = config[env_name][self.__class__.__name__]
         for key, value in config.items():
             setattr(self, key, value)
-        self.model_path = f"models/{env_name}/{self.__class__.__name__}.pt"
+        self.model_path = pathlib.Path(f"models/{env_name}/{self.__class__.__name__}")
+        if not self.model_path.exists():
+            self.model_path.mkdir(parents=True, exist_ok=True)
+        self.model_path = self.model_path.resolve()
         self.state_normalize = make_state_normalize(self.env.observation_space)
-        self.writer = SummaryWriter()
+        self.writer = SummaryWriter(comment=f"{env_name}-{self.__class__.__name__}")
 
     @abstractmethod
     def select_action_continuous(self, state, train=True):
@@ -64,7 +67,8 @@ class Algo(metaclass=ABCMeta):
             episodic_reward = 0
             while not done:
                 action = self.select_action(torch.from_numpy(state).to(self.device), train=False)
-                action = action.cpu()
+                if isinstance(action, torch.Tensor):
+                    action = action.cpu()
                 next_state, reward, done, truncation, info = self.env.step(action)
                 episodic_reward += reward
                 state = next_state

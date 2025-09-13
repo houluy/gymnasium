@@ -19,7 +19,7 @@ class DeepDeterministicPolicyGradient(Algo):
         self.target_policy = Policy(self.state_dim, self.action_dim).to(device)
         self.q = Q(self.state_dim + self.action_dim).to(device)
         self.target_q = Q(self.state_dim + self.action_dim).to(device)
-        self.target_network_soft_update()
+        self.target_network_hard_update()
  
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=self.policy_lr)
         self.q_optimizer = optim.Adam(self.q.parameters(), lr=self.critic_lr)
@@ -40,6 +40,10 @@ class DeepDeterministicPolicyGradient(Algo):
     def select_action_discrete(self, state, train=True):
         pass
 
+    def target_network_hard_update(self):
+        self.target_policy.load_state_dict(self.policy.state_dict())
+        self.target_q.load_state_dict(self.q.state_dict())
+
     def target_network_soft_update(self):
         with torch.no_grad():
             for target_param, param in zip(self.target_q.parameters(), self.q.parameters()):
@@ -53,14 +57,15 @@ class DeepDeterministicPolicyGradient(Algo):
         y = rewards.unsqueeze(1) + self.gamma * (1 - dones).unsqueeze(1) * self.target_q(torch.concat([next_states, next_actions], dim=1))
         q = self.q(torch.concat([states, actions], dim=1))
         loss = F.mse_loss(q, y.float())
-
         self.q_optimizer.zero_grad()
         loss.backward()
+        #torch.nn.utils.clip_grad_norm_(self.q.parameters(), max_norm=1.0)
         self.q_optimizer.step()
         return loss
 
     def update_policy(self, batch):
-        states, actions, rewards, next_states, dones = batch
+        states, _, rewards, next_states, dones = batch
+        actions = self.policy(states)
         q = self.q(torch.concat([states, actions], dim=1))
         for p in self.q.parameters():
             p.requires_grad = False
@@ -100,13 +105,14 @@ class DeepDeterministicPolicyGradient(Algo):
                     loss = self.update_q(batch)
                     performance = self.update_policy(batch)
                     self.writer.add_scalar("training/loss_value", loss, training_step)
-                    self.writer.add_scalar("training/q_value", -performance, training_step)
+                    self.writer.add_scalar("training/q_value", performance, training_step)
                     self.writer.add_scalar("training/Gaussian_noise_std", self.noise_std, training_step)
                     if training_step % self.noise_std_decay_freq == 0:
                         self.decay_noise()
                     if training_step % self.info_step == 0:
                         tqdm.write(f"Episode: {episode}, Training step: {training_step}, Episodic Reward: {episodic_reward}")
                     self.target_network_soft_update()
+                state = next_state
             self.writer.add_scalar("training/episode_length", step, episode)
             self.writer.add_scalar("training/episodic_reward", episodic_reward, episode)
         if self.continuous:

@@ -14,7 +14,7 @@ from src.algos.algo import Algo
 class VanillaActorCritic(Algo):
     def __init__(self, env_name, continuous=False, device=torch.device("cpu")):
         super().__init__(env_name, continuous, device)
-        
+
         self.buffer = EpisodeBuffer(self.gamma, device=self.device)
 
         # Value network
@@ -29,6 +29,8 @@ class VanillaActorCritic(Algo):
         else:
             self.policy = Policy(self.state_dim, self.action_dim).to(self.device)
         self.policy_optimizer = optim.Adam(self.policy.parameters(), lr=self.policy_lr)
+        self.policy_model_path = self.model_path / "policy.pth"
+        self.value_model_path = self.model_path / "value.pth"
 
     def select_action_discrete(self, state, train=True):
         with torch.no_grad():
@@ -46,13 +48,23 @@ class VanillaActorCritic(Algo):
             sample = torch.normal(mean, std)
         return sample.squeeze(0).cpu()
 
-    def evaluate(self, episodes=100):
+    def evaluate(self, episodes=100, load=True):
+        if load:
+            self.load()
         rewards = super().evaluate(episodes)
         return rewards
 
     def decay_noise(self):
         self.noise_std *= self.noise_std_decay_factor
         return self.noise_std
+
+    def save(self):
+        torch.save(self.value.state_dict(), self.value_model_path)
+        torch.save(self.policy.state_dict(), self.policy_model_path)
+
+    def load(self):
+        self.value.load_state_dict(torch.load(self.value_model_path))
+        self.policy.load_state_dict(torch.load(self.policy_model_path))
 
     def update_value(self, batch):
         states, actions, rewards, next_states, dones, rewards_to_go = batch
@@ -134,17 +146,9 @@ class VanillaActorCritic(Algo):
                         self.decay_noise()
             if episode % self.info_step == 0:
                 tqdm.write(f'Episode {episode}, episode reward: {episodic_reward}, loss {loss}, delta {torch.mean(delta).item()}')
+            if episode % self.save_step == 0:
+                self.save()
             self.buffer.clear()
-        self.writer.add_histogram("training/action_dist", np.array(action_dist), 1, bins="auto")
-
-
-
-class VanillaActorCritic(Algo):
-    def __init__(self, env_name, continuous=False, device=torch.device("cpu")):
-        super().__init__(env_name, continuous, device)
-
-
-    def select_action_continuous(self, state, train=True):
-         
-        return 
+        if self.continuous:
+            self.writer.add_histogram("training/action_dist", np.array(action_dist), 1, bins="auto")
 

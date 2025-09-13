@@ -65,7 +65,7 @@ critic_lr = 0.00001
 batch_size = 32
 buffer_size = 10000
 info_step = 1000
-polyak = 0.9
+polyak = 0.0001
 start_noise_std = 0.5
 noise_std_decay_factor = 0.99
 noise_std_decay_freq = 8000
@@ -78,6 +78,7 @@ policy_lr = 0.0001
 buffer_size = 100000
 batch_size = 32
 info_step = 1000
+save_step = 1000
 start_noise_std = 1.0
 noise_std_decay_factor = 0.99  # Standard deviation of the policy distribution for continuous action space
 noise_std_decay_freq_episode = 100
@@ -124,6 +125,26 @@ action_min = -2
 training_start = 10000
 update_num_per_step = 10
 
+[Pendulum-v1.RandomSample]
+training_start = 10000
+action_max = 2
+action_min = -2
+
+[Pendulum-v1.DQN]
+gamma = 0.99
+lr = 0.0001
+batch_size = 32
+info_step = 10000
+buffer_size = 100000
+save_step = 1000
+epsilon_decay_step = 5000
+epsilon_decay_factor = 0.99
+training_start = 3000
+target_update_step = 10
+action_max = 2
+action_min = -2
+hidden_size = 32
+
 [Acrobot-v1]
 
 [Acrobot-v1.DQN]
@@ -131,11 +152,13 @@ gamma = 0.99
 lr = 0.0001
 batch_size = 32
 info_step = 10000
+save_step = 10000
 buffer_size = 100000
 epsilon_decay_step = 5000
 epsilon_decay_factor = 0.99
 training_start = 3000
 target_update_step = 10
+hidden_size = 32
 
 [Acrobot-v1.DuelingDQN]
 gamma = 0.99
@@ -154,7 +177,9 @@ value_lr = 0.0001
 policy_lr = 0.0001
 buffer_size = 100000
 batch_size = 32
+save_step = 1000
 info_step = 1000
+policy_with_std = true
 
 [MountainCar-v0]
 
@@ -163,11 +188,13 @@ gamma = 0.99
 lr = 0.0001
 batch_size = 32
 info_step = 10000
+save_step = 10000
 buffer_size = 10000
 epsilon_decay_step = 10000
 epsilon_decay_factor = 0.99
 training_start = 10000
 target_update_step = 10
+hidden_size = 32
 
 [MountainCar-v0.VanillaActorCritic]
 gamma = 0.99
@@ -186,9 +213,11 @@ policy_lr = 0.0001
 buffer_size = 100000
 batch_size = 32
 info_step = 1000
+save_step = 1000
 start_noise_std = 1.0
 noise_std_decay_factor = 0.99  # Standard deviation of the policy distribution for continuous action space
 noise_std_decay_freq_episode = 100
+policy_with_std = true
 
 [MountainCarContinuous-v0.ActorCritic]  # 
 gamma = 0.99

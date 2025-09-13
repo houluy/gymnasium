@@ -2,7 +2,8 @@ import gymnasium as gym
 
 # env_name = "CliffWalking-v0"
 
-env_name = "MountainCarContinuous-v0"
+# env_name = "MountainCarContinuous-v0"
+env_name = "Pendulum-v1"
 
 env = gym.make(env_name, render_mode="human")
 
